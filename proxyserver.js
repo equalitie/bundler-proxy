@@ -29,12 +29,19 @@ var config = {
   // See http://nodejs.org/api/http.html#http_message_headers
   "cloneHeaders": [
   ],
-  "logDir": ".",
   "htmlDir": ".",
   // A mapping of headers to values to write for them in requests.
   "spoofHeaders": {
   },
-  "remapsFile": "./remaps.json"
+  "remapsFile": "./remaps.json",
+  "loging": {
+    "baseDir": ".",
+    "allowConsole": true,
+    "allowInfoFile": true,
+    "allowErrFile": true,
+    "infoFilename": "infoFile.log",
+    "errFilename": "errorFile.log"
+  }
 };
 
 var argv = parseArgs(process.argv.slice(2));
@@ -45,6 +52,10 @@ if (argv.config) {
 _.extend(config, JSON.parse(fs.readFileSync(configFile)));
 _.extend(remaps, JSON.parse(fs.readFileSync(config.remapsFile)));
 
+// Configure bundler's logging
+if (typeof config.logging !== 'undefined') {
+  bundler.configureLogger(config.logging);
+}
 
 // Log to syslog when not running in verbose mode
 /* if (process.argv[2] != '-v') {

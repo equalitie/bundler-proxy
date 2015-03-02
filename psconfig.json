@@ -8,7 +8,6 @@
 	"followFirstRedirect": true,
 	"followAllRedirects": false,
 	"redirectLimit": 10,
-	"logDir": ".",
 	"htmlDir": ".",
 	"cloneHeaders": [
 		"referer",
@@ -17,5 +16,13 @@
 	"spoofHeaders": {
 		"Origin": "Bundler"
 	},
-	"remapsFile": "./remaps.json"
+	"remapsFile": "./remaps.json",
+	"loging": {
+		"baseDir": ".",
+		"allowConsole": false,
+		"allowInfoFile": true,
+		"allowErrFile": true,
+		"infoFilename": "infoFile.log",
+		"errFilename": "errorFile.log"
+	}
 }
