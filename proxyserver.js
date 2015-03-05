@@ -5,7 +5,7 @@ var http = require('http');
 var fs = require('fs');
 var urllib = require('url');
 var qs = require('querystring');
-var nodeConstants = require('constants');
+var constants = require('constants');
 var _ = require('lodash');
 var parseArgs = require('minimist');
 var path = require('path');
@@ -52,11 +52,6 @@ if (argv.config) {
 _.extend(config, JSON.parse(fs.readFileSync(configFile)));
 _.extend(remaps, JSON.parse(fs.readFileSync(config.remapsFile)));
 
-// Configure bundler's logging
-if (typeof config.logging !== 'undefined') {
-  bundler.configureLogger(config.logging);
-}
-
 // Log to syslog when not running in verbose mode
 /* if (process.argv[2] != '-v') {
  *	Syslog.init("bundler", Syslog.LOG_PID | Syslog.LOG_ODELAY, Syslog.LOG_LOCAL0);
@@ -93,6 +88,15 @@ function reverseProxy(remapper) {
   };
 }
 
+function forceTLS(options, next) {
+  if (!options.hasOwnProperty('agentOptions')) {
+    options.agentOptions = {};
+  }
+  options.agentOptions.secureProtocol = 'TLSv1_method';
+  options.agentOptions.securityOptions = 'SSL_OP_NO_SSLv3';
+  next(null, options);
+}
+
 function renderErrorPage(req, res, error) {
   var url = qs.parse(urllib.parse(req.url).query).url;
   fs.readFile(path.join(config.htmlDir, 'error.html'), function (err, content) {
@@ -127,6 +131,9 @@ function handleRequests(req, res) {
 
   bundleMaker.on('originalRequest', reverseProxy(remaps));
   bundleMaker.on('resourceRequest', reverseProxy(remaps));
+
+  bundleMaker.on('originalRequest', forceTLS);
+  bundleMaker.on('resourceRequest', forceTLS);
 
 	if (config.useProxy) {
 		bundleMaker.on('originalRequest', bundler.proxyTo(config.proxyAddress));
