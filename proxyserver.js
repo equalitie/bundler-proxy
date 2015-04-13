@@ -114,14 +114,15 @@ function renderErrorPage(req, res, error) {
 function handleRequests(req, res) {
   var url = qs.parse(urllib.parse(req.url).query).url;
   var ping = qs.parse(urllib.parse(req.url).query).ping;
-	var bundleMaker = new bundler.Bundler(url);
-	bundleMaker.on('originalReceived', bundler.replaceImages);
-	bundleMaker.on('originalReceived', bundler.replaceJSFiles);
-	bundleMaker.on('originalReceived', bundler.replaceCSSFiles);
-  bundleMaker.on('originalReceived', bundler.replaceURLCalls);
 
-  bundleMaker.on('originalRequest', reverseProxy(remaps));
-  bundleMaker.on('resourceRequest', reverseProxy(remaps));
+    var bundleMaker = new bundler.Bundler(url);
+    bundleMaker.on('originalReceived', bundler.replaceImages);
+    bundleMaker.on('originalReceived', bundler.replaceJSFiles);
+    bundleMaker.on('originalReceived', bundler.replaceCSSFiles);
+    bundleMaker.on('originalReceived', bundler.replaceURLCalls);
+
+    bundleMaker.on('originalRequest', reverseProxy(remaps));
+    bundleMaker.on('resourceRequest', reverseProxy(remaps));
 
 	if (config.useProxy) {
 		bundleMaker.on('originalRequest', bundler.proxyTo(config.proxyAddress));
@@ -146,6 +147,7 @@ function handleRequests(req, res) {
         res.end();
     } else {
 
+        console.log("Returning budnle for url %s", url)
 	bundleMaker.bundle(function (err, bundle) {
 	    if (err) {
                 renderErrorPage(req, res, err);
