@@ -88,15 +88,6 @@ function reverseProxy(remapper) {
   };
 }
 
-function forceTLS(options, next) {
-  if (!options.hasOwnProperty('agentOptions')) {
-    options.agentOptions = {};
-  }
-  options.agentOptions.secureProtocol = 'TLSv1_method';
-  options.agentOptions.securityOptions = 'SSL_OP_NO_SSLv3';
-  next(null, options);
-}
-
 function renderErrorPage(req, res, error) {
   var url = qs.parse(urllib.parse(req.url).query).url;
   fs.readFile(path.join(config.htmlDir, 'error.html'), function (err, content) {
@@ -131,9 +122,6 @@ function handleRequests(req, res) {
 
   bundleMaker.on('originalRequest', reverseProxy(remaps));
   bundleMaker.on('resourceRequest', reverseProxy(remaps));
-
-  bundleMaker.on('originalRequest', forceTLS);
-  bundleMaker.on('resourceRequest', forceTLS);
 
 	if (config.useProxy) {
 		bundleMaker.on('originalRequest', bundler.proxyTo(config.proxyAddress));
