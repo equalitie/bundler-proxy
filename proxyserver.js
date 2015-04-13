@@ -71,6 +71,30 @@ function extractHeaders(req, headers) {
 	return newHeaders;
 }
 
+// Spoof the Host header in proxied requests to be the hostname of the site
+// being requested. This will (and should) be called before bundler.spoofHeaders
+// so that, if a Host header is set in the config, it will overwrite the
+// default provided by this function.
+function spoofHostAsDestination(url) {
+  return function (options, next) {
+    console.log('spoofHostAsDestination');
+    console.log('url = ');
+    console.log(url);
+    var hostname = urllib.parse(url).hostname;
+    // Remove all subdomains. e.g. learn.distributed.deflect.ca becomes deflect.ca 
+    var lastDot = hostname.lastIndexOf('.');
+    var sndLastDot = hostname.lastIndexOf('.', lastDot - 1);
+    hostname = hostname.substring(sndLastDot + 1, hostname.length);
+    if (!options.hasOwnProperty('headers')) {
+      options.headers = {};
+    }
+    options.headers['Host'] = hostname;
+    console.log('Set Host to ' + hostname);
+    console.log(options);
+    next(null, options);
+  };
+}
+
 function reverseProxy(remapper) {
   return function (options, next) {
   	var url = urllib.parse(options.url);
@@ -111,8 +135,19 @@ function renderErrorPage(req, res, error) {
   });
 }
 
+// Handler to simply print the value of options to be sent to request.
+function printOptions(options, next) {
+  console.log('\nprintOptions START');
+  console.log(options);
+  console.log('printOptions END\n');
+  next(null, options);
+}
+
+
 function handleRequests(req, res) {
   var url = qs.parse(urllib.parse(req.url).query).url;
+  console.log('Headers');
+  console.log(req.headers);
   var ping = qs.parse(urllib.parse(req.url).query).ping;
 
     var bundleMaker = new bundler.Bundler(url);
@@ -132,6 +167,12 @@ function handleRequests(req, res) {
 	// Clone some headers from the incoming request to go into the original request.
 	bundleMaker.on('originalRequest', bundler.spoofHeaders(extractHeaders(req, config.cloneHeaders)));
 
+  // Set the Host header to the hostname of the requested site.
+  // This handler is attached before the spoofHeaders handlers so that, if
+  // a Host header is provided in the config, it will overwrite this one.
+	bundleMaker.on('originalRequest', spoofHostAsDestination(url));
+	bundleMaker.on('resourceRequest', spoofHostAsDestination(url));
+
 	// Spoof certain headers on every request.
 	bundleMaker.on('originalRequest', bundler.spoofHeaders(config.spoofHeaders));
 	bundleMaker.on('resourceRequest', bundler.spoofHeaders(config.spoofHeaders));
@@ -141,6 +182,9 @@ function handleRequests(req, res) {
 
   bundleMaker.on('resourceReceived', bundler.bundleCSSRecursively);
 
+  bundleMaker.on('originalRequest', printOptions);
+  bundleMaker.on('resourceRequest', printOptions);
+  
     if (ping) {
         res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
         res.write("OK");
