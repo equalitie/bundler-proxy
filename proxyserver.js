@@ -98,8 +98,8 @@ function reverseProxy(remapper) {
   	}
   	if (remapper.hasOwnProperty(hostname)) {
   	  options.url = urllib.resolve(protocol + '//' + remapper[hostname], resource);
-            console.log("Remapped URL is %s", options.url)
-  	  options.headers['Host'] = hostname;
+      console.log("Remapped URL is %s", options.url)
+  	  options.headers['Host'] = protocol + '//' + hostname;
   	}
   	next(null, options);
   };
@@ -116,13 +116,13 @@ function renderErrorPage(req, res, error) {
       res.end();
     } else {
       if (!res.finished) {
-          content = content.toString();
-          res.writeHead(500, {'Content-Type': 'text/html'});
-          content = content.replace('{{url}}', url);
-          content = content.replace('{{error}}', error.message);
-          content = content.replace('{{stack}}', error.stack);
-          res.write(content);
-          res.end();
+        content = content.toString();
+        res.writeHead(500, {'Content-Type': 'text/html'});
+        content = content.replace('{{url}}', url);
+        content = content.replace('{{error}}', error.message);
+        content = content.replace('{{stack}}', error.stack);
+        res.write(content);
+        res.end();
       }
     }
   });
@@ -143,19 +143,17 @@ function handleRequests(req, res) {
 
   console.log('Got request for ' + url);
 
-    var bundleMaker = new bundler.Bundler(url);
-    bundleMaker.on('originalReceived', bundler.replaceImages);
-    bundleMaker.on('originalReceived', bundler.replaceJSFiles);
-    bundleMaker.on('originalReceived', bundler.replaceCSSFiles);
-    bundleMaker.on('originalReceived', bundler.replaceURLCalls);
+  var bundleMaker = new bundler.Bundler(url);
+  bundleMaker.on('originalReceived', bundler.replaceImages);
+  bundleMaker.on('originalReceived', bundler.replaceJSFiles);
+  bundleMaker.on('originalReceived', bundler.replaceCSSFiles);
+  bundleMaker.on('originalReceived', bundler.replaceURLCalls);
 
-    bundleMaker.on('originalRequest', reverseProxy(remaps));
-    bundleMaker.on('resourceRequest', reverseProxy(remaps));
 
 	if (config.useProxy) {
-		bundleMaker.on('originalRequest', bundler.proxyTo(config.proxyAddress));
-		bundleMaker.on('resourceRequest', bundler.proxyTo(config.proxyAddress));
-	}
+    bundleMaker.on('originalRequest', bundler.proxyTo(config.proxyAddress));
+    bundleMaker.on('resourceRequest', bundler.proxyTo(config.proxyAddress));
+  }
 
 	// Clone some headers from the incoming request to go into the original request.
 	bundleMaker.on('originalRequest', bundler.spoofHeaders(extractHeaders(req, config.cloneHeaders)));
@@ -166,37 +164,40 @@ function handleRequests(req, res) {
 	bundleMaker.on('originalRequest', spoofHostAsDestination(url));
 	bundleMaker.on('resourceRequest', spoofHostAsDestination(url));
 
+  bundleMaker.on('originalRequest', reverseProxy(remaps));
+  bundleMaker.on('resourceRequest', reverseProxy(remaps));
+
 	// Spoof certain headers on every request.
 	bundleMaker.on('originalRequest', bundler.spoofHeaders(config.spoofHeaders));
 	bundleMaker.on('resourceRequest', bundler.spoofHeaders(config.spoofHeaders));
 
 	bundleMaker.on('originalRequest', bundler.followRedirects(
-		config.followFirstRedirect, config.followAllRedirects, config.redirectLimit));
+  config.followFirstRedirect, config.followAllRedirects, config.redirectLimit));
 
   bundleMaker.on('resourceReceived', bundler.bundleCSSRecursively);
 
   bundleMaker.on('originalRequest', printOptions);
   bundleMaker.on('resourceRequest', printOptions);
 
-    if (ping) {
-        res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
-        res.write("OK");
-        res.end();
-    } else {
-
-	bundleMaker.bundle(function (err, bundle) {
-	    if (err) {
-                console.log('Failed to create bundle for ' + req.url);
-                console.log('Error: ' + err.message);
-                console.trace()
-                renderErrorPage(req, res, err);
-	    } else {
-		res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
-		res.write(bundle);
-		res.end();
-	    }
-	});
-    }
+  if (ping) {
+    res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
+    res.write("OK");
+    res.end();
+  } else {
+  
+  	bundleMaker.bundle(function (err, bundle) {
+    	if (err) {
+        console.log('Failed to create bundle for ' + req.url);
+        console.log('Error: ' + err.message);
+        console.trace()
+        renderErrorPage(req, res, err);
+    	} else {
+    		res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
+    		res.write(bundle);
+    		res.end();
+    	}
+    });
+  }
 }
 
 http.createServer(handleRequests).listen(config.listenPort, config.listenAddress, function() {
