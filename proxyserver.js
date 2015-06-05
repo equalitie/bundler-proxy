@@ -77,9 +77,6 @@ function extractHeaders(req, headers) {
 // default provided by this function.
 function spoofHostAsDestination(url) {
   return function (options, next) {
-    console.log('spoofHostAsDestination');
-    console.log('url = ');
-    console.log(url);
     var hostname = urllib.parse(url).hostname;
     // Remove all subdomains. e.g. learn.distributed.deflect.ca becomes deflect.ca 
     var lastDot = hostname.lastIndexOf('.');
@@ -89,8 +86,6 @@ function spoofHostAsDestination(url) {
       options.headers = {};
     }
     options.headers['Host'] = hostname;
-    console.log('Set Host to ' + hostname);
-    console.log(options);
     next(null, options);
   };
 }
@@ -146,9 +141,9 @@ function printOptions(options, next) {
 
 function handleRequests(req, res) {
   var url = qs.parse(urllib.parse(req.url).query).url;
-  console.log('Headers');
-  console.log(req.headers);
   var ping = qs.parse(urllib.parse(req.url).query).ping;
+
+  console.log('Got request for ' + url);
 
     var bundleMaker = new bundler.Bundler(url);
     bundleMaker.on('originalReceived', bundler.replaceImages);
