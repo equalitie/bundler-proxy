@@ -78,10 +78,7 @@ function extractHeaders(req, headers) {
 function spoofHostAsDestination(url) {
   return function (options, next) {
     var hostname = urllib.parse(url).hostname;
-    // Remove all subdomains. e.g. learn.distributed.deflect.ca becomes deflect.ca 
-    var lastDot = hostname.lastIndexOf('.');
-    var sndLastDot = hostname.lastIndexOf('.', lastDot - 1);
-    hostname = hostname.substring(sndLastDot + 1, hostname.length);
+    // Remove all subdomains. e.g. learn.distributed.deflect.ca becomes deflect.ca
     if (!options.hasOwnProperty('headers')) {
       options.headers = {};
     }
@@ -101,6 +98,7 @@ function reverseProxy(remapper) {
   	}
   	if (remapper.hasOwnProperty(hostname)) {
   	  options.url = urllib.resolve(protocol + '//' + remapper[hostname], resource);
+            console.log("Remapped URL is %s", options.url)
   	  options.headers['Host'] = hostname;
   	}
   	next(null, options);
@@ -179,16 +177,18 @@ function handleRequests(req, res) {
 
   bundleMaker.on('originalRequest', printOptions);
   bundleMaker.on('resourceRequest', printOptions);
-  
+
     if (ping) {
         res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
         res.write("OK");
         res.end();
     } else {
 
-        console.log("Returning budnle for url %s", url)
 	bundleMaker.bundle(function (err, bundle) {
 	    if (err) {
+                console.log('Failed to create bundle for ' + req.url);
+                console.log('Error: ' + err.message);
+                console.trace()
                 renderErrorPage(req, res, err);
 	    } else {
 		res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
