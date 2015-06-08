@@ -149,7 +149,7 @@ function sameHostPredicate(originalURL) {
 
 // A replacement function for bundler's `replaceLinks` handler that will remove
 // any links not on the same site as the originalURL, preventing requests to outside sources.
-function removeLinksFromOtherHosts(originalURL, resourceURL) {
+function removeLinksToOtherHosts(originalURL, resourceURL) {
   var originalHost = urllib.parse(originalURL).host;
   var resourceHost = urllib.parse(resourceURL).host;
   if ((resourceHost === null) || (originalHost === resourceHost)) {
@@ -167,11 +167,16 @@ function handleRequests(req, res) {
 
   var bundleMaker = new bundler.Bundler(url);
   var isSameHost = sameHostPredicate(url);
+
+  // If we want to strip out references to other hosts (to avoid ever making *any* requests to them),
+  // we must do it before calling any other handler
+  //bundleMaker.on('originalReceived', bundler.replaceLinks(removeLinksToOtherHosts));
+
   // Only bundle resources belonging to the same host. Note: this does not stop them from being fetched.
-  // bundleMaker.on('originalReceived', bundler.predicated(isSameHost, bundler.replaceImages));
-  // bundleMaker.on('originalReceived', bundler.predicated(isSameHost, bundler.replaceJSFiles));
-  // bundleMaker.on('originalReceived', bundler.predicated(isSameHost, bundler.replaceCSSFiles));
-  // bundleMaker.on('originalReceived', bundler.predicated(isSameHost, bundler.replaceURLCalls));
+  //bundleMaker.on('originalReceived', bundler.predicated(isSameHost, bundler.replaceImages));
+  //bundleMaker.on('originalReceived', bundler.predicated(isSameHost, bundler.replaceJSFiles));
+  //bundleMaker.on('originalReceived', bundler.predicated(isSameHost, bundler.replaceCSSFiles));
+  //bundleMaker.on('originalReceived', bundler.predicated(isSameHost, bundler.replaceURLCalls));
   bundleMaker.on('originalReceived', bundler.replaceImages);
   bundleMaker.on('originalReceived', bundler.replaceJSFiles);
   bundleMaker.on('originalReceived', bundler.replaceCSSFiles);
