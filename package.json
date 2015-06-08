@@ -11,6 +11,10 @@
     "lodash": "latest",
     "minimist": "latest"
   },
+  "devDependencies": {
+    "mocha": "latest",
+    "should": "^4.6.1"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/equalitie/bundler-proxy.git"

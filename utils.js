@@ -1,6 +1,6 @@
 var urllib = require('url');
 
-modules.exports = { // BEGIN MODULE
+module.exports = { // BEGIN MODULE
 
 // Extract the values of an array of provided headers into an object.
 extractHeaders: function (req, headers) {
@@ -44,7 +44,7 @@ reverseProxy: function (remapper) {
   	if (remapper.hasOwnProperty(hostname)) {
   	  options.url = urllib.resolve(protocol + '//' + remapper[hostname], resource);
       console.log("Remapped URL is %s", options.url)
-  	  options.headers['Host'] = protocol + '//' + hostname;
+  	  options.headers['Host'] = hostname;
   	}
   	next(null, options);
   };
