@@ -61,50 +61,6 @@ _.extend(remaps, JSON.parse(fs.readFileSync(config.remapsFile)));
 // Allow self-signed certs of all shapes and sizes.
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
-function extractHeaders(req, headers) {
-	var newHeaders = {};
-	for (var i = 0, len = headers.length; i < len; ++i) {
-		if (req.headers.hasOwnProperty(headers[i])) {
-			newHeaders[headers[i]] = req.headers[headers[i]];
-		}
-	}
-	return newHeaders;
-}
-
-// Spoof the Host header in proxied requests to be the hostname of the site
-// being requested. This will (and should) be called before bundler.spoofHeaders
-// so that, if a Host header is set in the config, it will overwrite the
-// default provided by this function.
-function spoofHostAsDestination(url) {
-  return function (options, next) {
-    var hostname = urllib.parse(url).hostname;
-    // Remove all subdomains. e.g. learn.distributed.deflect.ca becomes deflect.ca
-    if (!options.hasOwnProperty('headers')) {
-      options.headers = {};
-    }
-    options.headers['Host'] = hostname;
-    next(null, options);
-  };
-}
-
-function reverseProxy(remapper) {
-  return function (options, next) {
-  	var url = urllib.parse(options.url);
-  	var hostname = url.hostname;
-  	var resource = url.path;
-  	var protocol = url.protocol;
-  	if (!options.hasOwnProperty('headers')) {
-  	  options.headers = {};
-  	}
-  	if (remapper.hasOwnProperty(hostname)) {
-  	  options.url = urllib.resolve(protocol + '//' + remapper[hostname], resource);
-      console.log("Remapped URL is %s", options.url)
-  	  options.headers['Host'] = protocol + '//' + hostname;
-  	}
-  	next(null, options);
-  };
-}
-
 function renderErrorPage(req, res, error) {
   var url = qs.parse(urllib.parse(req.url).query).url;
   fs.readFile(path.join(config.htmlDir, 'error.html'), function (err, content) {
@@ -136,29 +92,6 @@ function printOptions(options, next) {
   next(null, options);
 }
 
-// Create a predicate for bundler's `predicated` helper function that determines
-// whether a resource being requested has the same host as that of the original document.
-function sameHostPredicate(originalURL) {
-  var originalHost = urllib.parse(originalURL).host; // Matches hostname and port
-  return function (originalDoc, resourceURL) {
-    var resourceHost = urllib.parse(resourceURL).host;
-    // If the resource is on a relative path (e.g. href=/path/to/resource), host will be null.
-    return (resourceHost === null) || (originalHost === resourceHost);
-  };
-}
-
-// A replacement function for bundler's `replaceLinks` handler that will remove
-// any links not on the same site as the originalURL, preventing requests to outside sources.
-function removeLinksToOtherHosts(originalURL, resourceURL) {
-  var originalHost = urllib.parse(originalURL).host;
-  var resourceHost = urllib.parse(resourceURL).host;
-  if ((resourceHost === null) || (originalHost === resourceHost)) {
-    return resourceURL;
-  } else {
-    return '';
-  }
-}
-
 function handleRequests(req, res) {
   var url = qs.parse(urllib.parse(req.url).query).url;
   var ping = qs.parse(urllib.parse(req.url).query).ping;
@@ -166,11 +99,11 @@ function handleRequests(req, res) {
   console.log('Got request for ' + url);
 
   var bundleMaker = new bundler.Bundler(url);
-  var isSameHost = sameHostPredicate(url);
+  var isSameHost = utils.sameHostPredicate(url);
 
   // If we want to strip out references to other hosts (to avoid ever making *any* requests to them),
   // we must do it before calling any other handler
-  //bundleMaker.on('originalReceived', bundler.replaceLinks(removeLinksToOtherHosts));
+  //bundleMaker.on('originalReceived', bundler.replaceLinks(utils.removeLinksToOtherHosts));
 
   // Only bundle resources belonging to the same host. Note: this does not stop them from being fetched.
   //bundleMaker.on('originalReceived', bundler.predicated(isSameHost, bundler.replaceImages));
@@ -189,16 +122,16 @@ function handleRequests(req, res) {
   }
 
 	// Clone some headers from the incoming request to go into the original request.
-	bundleMaker.on('originalRequest', bundler.spoofHeaders(extractHeaders(req, config.cloneHeaders)));
+	bundleMaker.on('originalRequest', bundler.spoofHeaders(utils.extractHeaders(req, config.cloneHeaders)));
 
   // Set the Host header to the hostname of the requested site.
   // This handler is attached before the spoofHeaders handlers so that, if
   // a Host header is provided in the config, it will overwrite this one.
-	bundleMaker.on('originalRequest', spoofHostAsDestination(url));
-	bundleMaker.on('resourceRequest', spoofHostAsDestination(url));
+	bundleMaker.on('originalRequest', utils.spoofHostAsDestination(url));
+	bundleMaker.on('resourceRequest', utils.spoofHostAsDestination(url));
 
-  bundleMaker.on('originalRequest', reverseProxy(remaps));
-  bundleMaker.on('resourceRequest', reverseProxy(remaps));
+  bundleMaker.on('originalRequest', utils.reverseProxy(remaps));
+  bundleMaker.on('resourceRequest', utils.reverseProxy(remaps));
 
 	// Spoof certain headers on every request.
 	bundleMaker.on('originalRequest', bundler.spoofHeaders(config.spoofHeaders));
