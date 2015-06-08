@@ -8,7 +8,9 @@ extractHeaders: function (req, headers) {
 	for (var i = 0, len = headers.length; i < len; ++i) {
 		if (req.headers.hasOwnProperty(headers[i])) {
 			newHeaders[headers[i]] = req.headers[headers[i]];
-		}
+		} else {
+      newHeaders[headers[i]] = null;
+    }
 	}
 	return newHeaders;
 },
