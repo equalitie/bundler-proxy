@@ -147,6 +147,18 @@ function sameHostPredicate(originalURL) {
   };
 }
 
+// A replacement function for bundler's `replaceLinks` handler that will remove
+// any links not on the same site as the originalURL, preventing requests to outside sources.
+function removeLinksFromOtherHosts(originalURL, resourceURL) {
+  var originalHost = urllib.parse(originalURL).host;
+  var resourceHost = urllib.parse(resourceURL).host;
+  if ((resourceHost === null) || (originalHost === resourceHost)) {
+    return resourceURL;
+  } else {
+    return '';
+  }
+}
+
 function handleRequests(req, res) {
   var url = qs.parse(urllib.parse(req.url).query).url;
   var ping = qs.parse(urllib.parse(req.url).query).ping;
