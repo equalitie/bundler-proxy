@@ -136,6 +136,16 @@ function printOptions(options, next) {
   next(null, options);
 }
 
+// Create a predicate for bundler's `predicated` helper function that determines
+// whether a resource being requested has the same host as that of the original document.
+function sameHostPredicate(originalURL) {
+  var originalHost = urllib.parse(originalURL).host; // Matches hostname and port
+  return function (originalDoc, resourceURL) {
+    var resourceHost = urllib.parse(resourceURL).host;
+    // If the resource is on a relative path (e.g. href=/path/to/resource), host will be null.
+    return (resourceHost === null) || (originalHost === resourceHost);
+  };
+}
 
 function handleRequests(req, res) {
   var url = qs.parse(urllib.parse(req.url).query).url;
@@ -144,6 +154,12 @@ function handleRequests(req, res) {
   console.log('Got request for ' + url);
 
   var bundleMaker = new bundler.Bundler(url);
+  var isSameHost = sameHostPredicate(url);
+  // Only bundle resources belonging to the same host. Note: this does not stop them from being fetched.
+  // bundleMaker.on('originalReceived', bundler.predicated(isSameHost, bundler.replaceImages));
+  // bundleMaker.on('originalReceived', bundler.predicated(isSameHost, bundler.replaceJSFiles));
+  // bundleMaker.on('originalReceived', bundler.predicated(isSameHost, bundler.replaceCSSFiles));
+  // bundleMaker.on('originalReceived', bundler.predicated(isSameHost, bundler.replaceURLCalls));
   bundleMaker.on('originalReceived', bundler.replaceImages);
   bundleMaker.on('originalReceived', bundler.replaceJSFiles);
   bundleMaker.on('originalReceived', bundler.replaceCSSFiles);
