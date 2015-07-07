@@ -101,19 +101,11 @@ function handleRequests(req, res) {
   var bundleMaker = new bundler.Bundler(url);
   var isSameHost = utils.sameHostPredicate(url);
 
-  // If we want to strip out references to other hosts (to avoid ever making *any* requests to them),
-  // we must do it before calling any other handler
-  //bundleMaker.on('originalReceived', bundler.replaceLinks(utils.removeLinksToOtherHosts));
-
   // Only bundle resources belonging to the same host. Note: this does not stop them from being fetched.
-  //bundleMaker.on('originalReceived', bundler.predicated(isSameHost, bundler.replaceImages));
-  //bundleMaker.on('originalReceived', bundler.predicated(isSameHost, bundler.replaceJSFiles));
-  //bundleMaker.on('originalReceived', bundler.predicated(isSameHost, bundler.replaceCSSFiles));
-  //bundleMaker.on('originalReceived', bundler.predicated(isSameHost, bundler.replaceURLCalls));
-  bundleMaker.on('originalReceived', bundler.replaceImages);
-  bundleMaker.on('originalReceived', bundler.replaceJSFiles);
-  bundleMaker.on('originalReceived', bundler.replaceCSSFiles);
-  bundleMaker.on('originalReceived', bundler.replaceURLCalls);
+  bundleMaker.on('originalReceived', bundler.predicated(isSameHost, bundler.replaceImages));
+  bundleMaker.on('originalReceived', bundler.predicated(isSameHost, bundler.replaceJSFiles));
+  bundleMaker.on('originalReceived', bundler.predicated(isSameHost, bundler.replaceCSSFiles));
+  bundleMaker.on('originalReceived', bundler.predicated(isSameHost, bundler.replaceURLCalls));
 
 
 	if (config.useProxy) {
