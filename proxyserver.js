@@ -9,6 +9,7 @@ var constants = require('constants');
 var _ = require('lodash');
 var parseArgs = require('minimist');
 var path = require('path');
+var utils = require('./utils.js');
 
 var bundler = require('equalitie-bundler');
 
@@ -142,7 +143,7 @@ function handleRequests(req, res) {
     res.write("OK");
     res.end();
   } else {
-  
+
   	bundleMaker.bundle(function (err, bundle) {
     	if (err) {
         console.log('Failed to create bundle for ' + req.url);
