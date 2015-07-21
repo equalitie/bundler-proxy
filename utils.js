@@ -2,6 +2,13 @@ var urllib = require('url');
 
 module.exports = { // BEGIN MODULE
 
+// Create a function that always returns the same value
+constant: function (x) {
+  return function () {
+    return x;
+  };
+},
+
 // Extract the values of an array of provided headers into an object.
 extractHeaders: function (req, headers) {
 	var newHeaders = {};
@@ -53,6 +60,9 @@ reverseProxy: function (remapper) {
 // Create a predicate for bundler's `predicated` helper function that determines
 // whether a resource being requested has the same host as that of the original document.
 sameHostPredicate: function (originalURL) {
+  if (typeof originalURL === 'undefined' || !originalURL) {
+    return this.constant(false);
+  }
   var originalHost = urllib.parse(originalURL).host; // Matches hostname and port
   return function (originalDoc, resourceURL) {
     var resourceHost = urllib.parse(resourceURL).host;
@@ -64,6 +74,11 @@ sameHostPredicate: function (originalURL) {
 // A replacement function for bundler's `replaceLinks` handler that will remove
 // any links not on the same site as the originalURL, preventing requests to outside sources.
 removeLinksToOtherHosts: function (originalURL, resourceURL) {
+  // Remove all links found in resources where the original URL is indeterminate.
+  // This should only happen when we've received a request for something like a favicon.
+  if (typeof originalURL === 'undefined' || !originalURL) {
+    return '';
+  }
   var originalHost = urllib.parse(originalURL).host;
   var resourceHost = urllib.parse(resourceURL).host;
   if ((resourceHost === null) || (originalHost === resourceHost)) {
