@@ -141,6 +141,13 @@ function handleRequests(req, res) {
   bundleMaker.on('originalRequest', printOptions);
   bundleMaker.on('resourceRequest', printOptions);
 
+  // This is a patch over an issue where a site's own URL would come back through bundler
+  // and it (the source in the diff) would be lost (made an empty string).
+  // This was leading to an infinite loop of prepending the diff to the beginning of the
+  // bundle in memory, causing an out-of-memory error.
+  // TODO - Ideally this patch should be replaced with a complete fix.
+  bundleMaker.on('diffsReceived', bundler.filterDiffs((source, diff) => source.length > 0));
+
   if (ping) {
     res.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8'
