@@ -28,8 +28,7 @@ var config = {
   "redirectLimit": 10,
   // Headers to clone from the original request sent by the user.
   // See http://nodejs.org/api/http.html#http_message_headers
-  "cloneHeaders": [
-  ],
+  "cloneHeaders": [],
   "htmlDir": ".",
   // A mapping of headers to values to write for them in requests.
   "spoofHeaders": {
@@ -47,7 +46,7 @@ var config = {
 
 var argv = parseArgs(process.argv.slice(2));
 if (argv.config) {
-    configFile = argv.config;
+  configFile = argv.config;
 }
 
 _.extend(config, JSON.parse(fs.readFileSync(configFile)));
@@ -64,9 +63,11 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 function renderErrorPage(req, res, error) {
   var url = qs.parse(urllib.parse(req.url).query).url;
-  fs.readFile(path.join(config.htmlDir, 'error.html'), function (err, content) {
+  fs.readFile(path.join(config.htmlDir, 'error.html'), function(err, content) {
     if (err) {
-      res.writeHead(500, {'Content-Type': 'text/plain'});
+      res.writeHead(500, {
+        'Content-Type': 'text/plain'
+      });
       res.write('An error occurred while trying to create a bundle for you.\n');
       res.write('Requested url: ' + url + '\n');
       res.write('The error provided says: ' + error.message + '\n');
@@ -74,7 +75,9 @@ function renderErrorPage(req, res, error) {
     } else {
       if (!res.finished) {
         content = content.toString();
-        res.writeHead(500, {'Content-Type': 'text/html'});
+        res.writeHead(500, {
+          'Content-Type': 'text/html'
+        });
         content = content.replace('{{url}}', url);
         content = content.replace('{{error}}', error.message);
         content = content.replace('{{stack}}', error.stack);
@@ -109,29 +112,29 @@ function handleRequests(req, res) {
   bundleMaker.on('originalReceived', bundler.predicated(isSameHost, bundler.replaceURLCalls));
 
 
-	if (config.useProxy) {
+  if (config.useProxy) {
     bundleMaker.on('originalRequest', bundler.proxyTo(config.proxyAddress));
     bundleMaker.on('resourceRequest', bundler.proxyTo(config.proxyAddress));
   }
 
-	// Clone some headers from the incoming request to go into the original request.
-	bundleMaker.on('originalRequest', bundler.spoofHeaders(utils.extractHeaders(req, config.cloneHeaders)));
+  // Clone some headers from the incoming request to go into the original request.
+  bundleMaker.on('originalRequest', bundler.spoofHeaders(utils.extractHeaders(req, config.cloneHeaders)));
 
   // Set the Host header to the hostname of the requested site.
   // This handler is attached before the spoofHeaders handlers so that, if
   // a Host header is provided in the config, it will overwrite this one.
-	bundleMaker.on('originalRequest', utils.spoofHostAsDestination(url));
-	bundleMaker.on('resourceRequest', utils.spoofHostAsDestination(url));
+  bundleMaker.on('originalRequest', utils.spoofHostAsDestination(url));
+  bundleMaker.on('resourceRequest', utils.spoofHostAsDestination(url));
 
   bundleMaker.on('originalRequest', utils.reverseProxy(remaps));
   bundleMaker.on('resourceRequest', utils.reverseProxy(remaps));
 
-	// Spoof certain headers on every request.
-	bundleMaker.on('originalRequest', bundler.spoofHeaders(config.spoofHeaders));
-	bundleMaker.on('resourceRequest', bundler.spoofHeaders(config.spoofHeaders));
+  // Spoof certain headers on every request.
+  bundleMaker.on('originalRequest', bundler.spoofHeaders(config.spoofHeaders));
+  bundleMaker.on('resourceRequest', bundler.spoofHeaders(config.spoofHeaders));
 
-	bundleMaker.on('originalRequest', bundler.followRedirects(
-  config.followFirstRedirect, config.followAllRedirects, config.redirectLimit));
+  bundleMaker.on('originalRequest', bundler.followRedirects(
+    config.followFirstRedirect, config.followAllRedirects, config.redirectLimit));
 
   bundleMaker.on('resourceReceived', bundler.bundleCSSRecursively);
 
@@ -139,31 +142,35 @@ function handleRequests(req, res) {
   bundleMaker.on('resourceRequest', printOptions);
 
   if (ping) {
-    res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8'
+    });
     res.write("OK");
     res.end();
   } else {
 
-  	bundleMaker.bundle(function (err, bundle) {
-    	if (err) {
+    bundleMaker.bundle(function(err, bundle) {
+      if (err) {
         console.log('Failed to create bundle for ' + req.url);
         console.log('Error: ' + err.message);
         console.trace()
         renderErrorPage(req, res, err);
-    	} else {
-    		res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
-    		res.write(bundle);
-    		res.end();
-    	}
+      } else {
+        res.writeHead(200, {
+          'Content-Type': 'text/html; charset=utf-8'
+        });
+        res.write(bundle);
+        res.end();
+      }
     });
   }
 }
 
 http.createServer(handleRequests).listen(config.listenPort, config.listenAddress, function() {
-	//Drop privileges if running as root
-	if (process.getuid() === 0) {
-		process.setgid(config.drop_group);
-		process.setuid(config.drop_user);
-	}
+  //Drop privileges if running as root
+  if (process.getuid() === 0) {
+    process.setgid(config.drop_group);
+    process.setuid(config.drop_user);
+  }
 });
 //console.log('Proxy server listening on ' + config.listenAddress + ":" + config.listenPort);

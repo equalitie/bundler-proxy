@@ -10,7 +10,9 @@ var address = '127.0.0.1';
 function log_requests(req, res) {
   console.log('Request URL = ' + req.url);
   console.log(req.headers);
-  res.writeHead(200, {'Content-Type': 'text/plain'});
+  res.writeHead(200, {
+    'Content-Type': 'text/plain'
+  });
   res.write('Acknowledged\n');
   res.end();
 }
