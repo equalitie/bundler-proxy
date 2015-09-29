@@ -146,7 +146,9 @@ function handleRequests(req, res) {
   // This was leading to an infinite loop of prepending the diff to the beginning of the
   // bundle in memory, causing an out-of-memory error.
   // TODO - Ideally this patch should be replaced with a complete fix.
-  bundleMaker.on('diffsReceived', bundler.filterDiffs((source, diff) => source.length > 0));
+  bundleMaker.on('diffsReceived', bundler.filterDiffs(function (source, diff) {
+    return source.length > 0; 
+  }));
 
   if (ping) {
     res.writeHead(200, {
